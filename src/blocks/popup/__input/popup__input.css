@@ -1,4 +1,4 @@
-.popup__input {
+input.popup__input {
   width: 100%;
   border: 0;
   border-bottom: 1px solid  rgba(0, 0, 0, .2);
@@ -12,12 +12,12 @@
   transition: border-bottom 0.3s;
 }
 
-.popup__input::placeholder {
+input.popup__input::placeholder {
   color: #c4c4c4;
 }
 
 @media screen and (max-width: 568px) {
-  .popup__input {
+  input.popup__input {
     font-size: 12px;
   }
 }

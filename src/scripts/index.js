@@ -1,6 +1,6 @@
 import '../pages/index.css';
 import {
-  addNewCard,
+  addCard,
   changeLikeCardStatus,
   deleteCard,
   getCardList,
@@ -17,7 +17,7 @@ import {
   toggleButtonState,
   validateForm,
 } from './components/validation.js';
-import { renderCardStatistics } from './components/statistics.js';
+import { renderCardsStats } from './components/statistics.js';
 
 const validationSettings = {
   formSelector: '.popup__form',
@@ -25,7 +25,7 @@ const validationSettings = {
   submitButtonSelector: '.popup__button',
   inactiveButtonClass: 'popup__button_disabled',
   inputErrorClass: 'popup__input_type_error',
-  errorClass: 'popup__error_visible',
+  errorClass: 'popup__input-error_active',
 };
 
 const profileTitle = document.querySelector('.profile__title');
@@ -65,7 +65,6 @@ const infoElements = {
 };
 
 let currentUserId = '';
-let currentUserData = null;
 let loadedCards = [];
 let cardToDelete = null;
 let cardElementToDelete = null;
@@ -89,6 +88,12 @@ const renderCard = (card, container = cardsList, method = 'append') => {
   container[method](cardElement);
 };
 
+const updateCardsStats = () => {
+  if (infoPopup.classList.contains('popup_is-opened')) {
+    renderCardsStats(loadedCards, infoElements);
+  }
+};
+
 function handleImageClick(card) {
   imagePopupImage.src = card.link;
   imagePopupImage.alt = card.name;
@@ -110,14 +115,15 @@ function handleLikeClick(card, cardElement) {
       loadedCards = loadedCards.map((item) => (item._id === updatedCard._id ? updatedCard : item));
       Object.assign(card, updatedCard);
       updateCardLike(cardElement, updatedCard, currentUserId);
+      updateCardsStats();
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     });
 }
 
-const setButtonText = (button, text) => {
-  button.textContent = text;
+const renderLoading = (isLoading, submitButton, loadingText = 'Сохранение...', defaultText = 'Сохранить') => {
+  submitButton.textContent = isLoading ? loadingText : defaultText;
 };
 
 const blockInvalidSubmit = (formElement) => {
@@ -144,14 +150,13 @@ const handleProfileFormSubmit = (evt) => {
 
   const submitButton = editProfileForm.querySelector(validationSettings.submitButtonSelector);
   const defaultText = submitButton.textContent;
-  setButtonText(submitButton, 'Сохранение...');
+  renderLoading(true, submitButton, 'Сохранение...', defaultText);
 
   setUserInfo({
     name: nameInput.value.trim(),
     about: aboutInput.value.trim(),
   })
     .then((userData) => {
-      currentUserData = userData;
       currentUserId = userData._id;
       renderProfile(userData);
       closeModal(editProfilePopup);
@@ -159,10 +164,10 @@ const handleProfileFormSubmit = (evt) => {
       clearValidation(editProfileForm, validationSettings);
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
-      setButtonText(submitButton, defaultText);
+      renderLoading(false, submitButton, 'Сохранение...', defaultText);
     });
 };
 
@@ -175,11 +180,10 @@ const handleAvatarFormSubmit = (evt) => {
 
   const submitButton = avatarForm.querySelector(validationSettings.submitButtonSelector);
   const defaultText = submitButton.textContent;
-  setButtonText(submitButton, 'Сохранение...');
+  renderLoading(true, submitButton, 'Сохранение...', defaultText);
 
   setUserAvatar({ avatar: avatarInput.value.trim() })
     .then((userData) => {
-      currentUserData = userData;
       currentUserId = userData._id;
       renderProfile(userData);
       closeModal(avatarPopup);
@@ -187,10 +191,10 @@ const handleAvatarFormSubmit = (evt) => {
       clearValidation(avatarForm, validationSettings);
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
-      setButtonText(submitButton, defaultText);
+      renderLoading(false, submitButton, 'Сохранение...', defaultText);
     });
 };
 
@@ -203,24 +207,25 @@ const handleNewCardFormSubmit = (evt) => {
 
   const submitButton = newCardForm.querySelector(validationSettings.submitButtonSelector);
   const defaultText = submitButton.textContent;
-  setButtonText(submitButton, 'Создание...');
+  renderLoading(true, submitButton, 'Создание...', defaultText);
 
-  addNewCard({
+  addCard({
     name: cardNameInput.value.trim(),
     link: cardLinkInput.value.trim(),
   })
     .then((newCard) => {
       loadedCards = [newCard, ...loadedCards];
       renderCard(newCard, cardsList, 'prepend');
+      updateCardsStats();
       closeModal(newCardPopup);
       newCardForm.reset();
       clearValidation(newCardForm, validationSettings);
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
-      setButtonText(submitButton, defaultText);
+      renderLoading(false, submitButton, 'Создание...', defaultText);
     });
 };
 
@@ -233,21 +238,22 @@ const handleRemoveCardFormSubmit = (evt) => {
 
   const submitButton = removeCardForm.querySelector(validationSettings.submitButtonSelector);
   const defaultText = submitButton.textContent;
-  setButtonText(submitButton, 'Удаление...');
+  renderLoading(true, submitButton, 'Удаление...', defaultText);
 
   deleteCard(cardToDelete._id)
     .then(() => {
       loadedCards = loadedCards.filter((card) => card._id !== cardToDelete._id);
       cardElementToDelete.remove();
+      updateCardsStats();
       closeModal(removeCardPopup);
       cardToDelete = null;
       cardElementToDelete = null;
     })
     .catch((err) => {
-      console.log(err);
+      console.error(err);
     })
     .finally(() => {
-      setButtonText(submitButton, defaultText);
+      renderLoading(false, submitButton, 'Удаление...', defaultText);
     });
 };
 
@@ -272,7 +278,7 @@ const openAvatarPopup = () => {
 };
 
 const openInfoPopup = () => {
-  renderCardStatistics(loadedCards, currentUserData, infoElements);
+  renderCardsStats(loadedCards, infoElements);
   openModal(infoPopup);
 };
 
@@ -289,9 +295,8 @@ removeCardForm.addEventListener('submit', handleRemoveCardFormSubmit);
 setModalCloseListeners(popups);
 enableValidation(validationSettings);
 
-Promise.all([getCardList(), getUserInfo()])
-  .then(([cards, userData]) => {
-    currentUserData = userData;
+Promise.all([getUserInfo(), getCardList()])
+  .then(([userData, cards]) => {
     currentUserId = userData._id;
     loadedCards = cards;
 
@@ -299,5 +304,5 @@ Promise.all([getCardList(), getUserInfo()])
     cards.forEach((card) => renderCard(card));
   })
   .catch((err) => {
-    console.log(err);
+    console.error(err);
   });

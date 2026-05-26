@@ -31,7 +31,7 @@ export const getValidationError = (input) => {
   }
 
   if (validationType === 'text' && !textPattern.test(trimmedValue)) {
-    return 'Разрешены только латинские буквы, кириллица, пробелы и дефис';
+    return input.dataset.errorMessage ?? 'Разрешены только латинские буквы, кириллица, пробелы и дефис';
   }
 
   if (validationType === 'image-url' && !isImageUrl(trimmedValue)) {

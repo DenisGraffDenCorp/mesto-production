@@ -14,47 +14,35 @@ const createBadgeElement = (text) => {
   return badgeElement;
 };
 
-const getTotalUsers = (cards) => {
-  const userIds = new Set();
-
-  cards.forEach((card) => {
-    userIds.add(card.owner._id);
-    card.likes.forEach((user) => userIds.add(user._id));
-  });
-
-  return userIds.size;
-};
-
-const getLikesChampion = (cards, currentUser) => {
-  const likesByUser = new Map();
-
-  cards.forEach((card) => {
-    card.likes.forEach((user) => {
-      const current = likesByUser.get(user._id) ?? { name: user.name, count: 0 };
-      likesByUser.set(user._id, { name: user.name, count: current.count + 1 });
-    });
-  });
-
-  const champion = Array.from(likesByUser.values()).sort((a, b) => b.count - a.count)[0];
-  return champion ?? { name: currentUser?.name ?? 'Пока нет', count: 0 };
-};
-
-export const renderCardStatistics = (cards, currentUser, elements) => {
+export const getCardsStats = (cards) => {
+  const totalUsers = new Set(cards.map((card) => card.owner._id)).size;
   const totalLikes = cards.reduce((sum, card) => sum + card.likes.length, 0);
-  const champion = getLikesChampion(cards, currentUser);
   const maxCardLikes = cards.reduce((max, card) => Math.max(max, card.likes.length), 0);
-  const popularCards = cards.filter((card) => card.likes.length === maxCardLikes && maxCardLikes > 0).slice(0, 3);
+  const popularCards = cards.filter((card) => card.likes.length === maxCardLikes && maxCardLikes > 0);
+  const championCard = popularCards[0];
+
+  return {
+    totalUsers,
+    totalLikes,
+    maxCardLikes,
+    likesChampion: championCard?.owner.name ?? 'Нет данных',
+    popularCards: popularCards.slice(0, 3),
+  };
+};
+
+export const renderCardsStats = (cards, elements) => {
+  const stats = getCardsStats(cards);
 
   elements.definitions.replaceChildren(
-    createDefinitionElement('Всего пользователей:', getTotalUsers(cards)),
-    createDefinitionElement('Всего лайков:', totalLikes),
-    createDefinitionElement('Максимально лайков от одного:', champion.count),
-    createDefinitionElement('Чемпион лайков:', champion.name)
+    createDefinitionElement('Всего пользователей:', stats.totalUsers),
+    createDefinitionElement('Всего лайков:', stats.totalLikes),
+    createDefinitionElement('Максимально лайков от одного:', stats.maxCardLikes),
+    createDefinitionElement('Чемпион лайков:', stats.likesChampion)
   );
 
   const popularCardElements =
-    popularCards.length > 0
-      ? popularCards.map((card) => createBadgeElement(card.name))
+    stats.popularCards.length > 0
+      ? stats.popularCards.map((card) => createBadgeElement(card.name))
       : [createBadgeElement('Нет лайков')];
 
   elements.popularCards.replaceChildren(...popularCardElements);
